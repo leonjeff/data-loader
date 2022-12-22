@@ -7,7 +7,6 @@ import Button from '@mui/material/Button';
 import DeleteIcon from '@mui/icons-material/Delete';
 import MUIDataTable from 'mui-datatables';
 
-//Custom components
 import { FileUploader } from './components/FileUploader';
 import { Footer } from './components/Footer';
 import { MenuBar } from './components/MenuBar';
