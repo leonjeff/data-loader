@@ -1,168 +1,145 @@
-import { useState } from 'react';
-import axios, { formToJSON } from 'axios';
-import AppBar from '@mui/material/AppBar';
-import Button from '@mui/material/Button';
-import CssBaseline from '@mui/material/CssBaseline';
-import Grid from '@mui/material/Grid';
-import Box from '@mui/material/Box';
-import Toolbar from '@mui/material/Toolbar';
-import Typography from '@mui/material/Typography';
-import Container from '@mui/material/Container';
-import Link from '@mui/material/Link';
-import { createTheme, ThemeProvider } from '@mui/material/styles';
-import { DataGrid } from '@mui/x-data-grid';
-import { FileUploader } from './components/FileUploader';
-import { IconButton } from '@material-ui/core';
+import { useState, useEffect } from "react";
+import axios from "axios";
 
-import { columns, rows } from './utils/datatable.js';
+import { createMuiTheme, MuiThemeProvider } from "@material-ui/core/styles";
+import Container from "@mui/material/Container";
+import Grid from "@mui/material/Grid";
+import Button from "@mui/material/Button";
+import DeleteIcon from "@mui/icons-material/Delete";
+import MUIDataTable from "mui-datatables";
 
-function Copyright() {
-  return (
-    <Typography variant="body2" color="text.secondary" align="center">
-      {'Copyright © '}
-      <Link color="inherit" href="https://mui.com/">
-        Your Website
-      </Link>{' '}
-      {new Date().getFullYear()}
-      {'.'}
-    </Typography>
-  );
-}
-
-const theme = createTheme();
-
-const baseURL = 'http://localhost:3030/vehicle/';
+//Custom components
+import { FileUploader } from "./components/FileUploader";
+import { Footer } from "./components/Footer";
+import { MenuBar } from "./components/MenuBar";
 
 function App() {
-  const [vehicule, setVehicule] = useState(null);
-  const [licensePlate, setLicensePlate] = useState('');
+  const baseURL = "http://localhost:3030/vehicle/";
+  const [vehicle, setVehicle] = useState(null);
+  const [licensePlate, setLicensePlate] = useState("");
+  const [list, setList] = useState([]);
 
   const handleChange = (event) => {
     setLicensePlate(event.target.value);
-    console.log('value is:', event.target.value);
   };
 
   const urlSearch = baseURL + licensePlate;
-
   const getByLicensePlate = () => {
     axios.get(urlSearch).then((response) => {
-      setVehicule(response.data);
+      setVehicle(response.data);
       if (response == null) return null;
     });
-
-    console.log('AAAA');
   };
 
-  console.log(vehicule);
+  useEffect(() => {
+    const sendGetRequest = async () => {
+      try {
+        const resp = await axios.get("http://localhost:3030/vehicles");
+        setList(resp.data);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    sendGetRequest();
+  }, [setList]);
+
+  const deleteSelectedVehicle = async (id) => {
+    try {
+      const resp = await axios.delete(
+        "http://localhost:3030/vehicle/delete" + id
+      );
+      console.log("Eliminado");
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const columns = [
+    { name: "id", label: "ID" },
+    { name: "licensePlate", label: "PPU" },
+    { name: "make", label: "Marca" },
+    { name: "model", label: "Modelo" },
+    { name: "yearOfManufacture", label: "Año" },
+    {
+      name: "Actions",
+      options: {
+        filter: true,
+        customBodyRender: (value, tableMeta, updateValue) => {
+          return (
+            <Button
+              onClick={() => {
+                //console.log(tableMeta.rowData[0]);
+
+                const id = tableMeta.rowData[0];
+                deleteSelectedVehicle(id);
+              }}
+            >
+              <DeleteIcon />
+            </Button>
+          );
+        },
+      },
+    },
+  ];
+
+  /*
+  const deleteVehicle = (id) => {
+    axios.delete(`http://localhost:3030/vehicle/`+id).then(console.log('Delete successful'));
+  };
+  */
+
+  const DeleteButton = () => {
+    return (
+      <Button>
+        <DeleteIcon />
+      </Button>
+    );
+  };
+
+  const customRows = list.map((item) => ({
+    id: item._id,
+    licensePlate: item.licensePlate,
+    make: item.make,
+    model: item.model,
+    yearOfManufacture: item.yearOfManufacture,
+  }));
+
   return (
     <>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <AppBar position="relative">
-          <Toolbar>
-            <Typography variant="h6" color="inherit" noWrap>
-              Registro y Mantenedor de Patentes
-            </Typography>
-          </Toolbar>
-        </AppBar>
-        <main>
-          {/* Hero unit */}
-          <Container
-            maxWidth="xl"
-            sx={{
-              display: 'flex',
-              bgcolor: 'background.paper',
-              // border: '2px solid orange',
-            }}
-          >
-            <button
-              type="button"
-              className="button"
-              onClick={() => {
-                console.log('do something');
-              }}
-            >
-              Adicionar
-            </button>
+      <MenuBar />
+      {vehicle}
+      <Container
+        maxWidth="100%"
+        style={{
+          display: "flex",
+          bgcolor: "background.paper",
+          border: "1px solid #1976d2",
+          height: "140px",
+          padding: 0,
+        }}
+      >
+        <Grid container style={{ paddingTop: "15px" }}>
+          <Grid item xs={4}></Grid>
+          <Grid item xs={4}>
+            <FileUploader />
+          </Grid>
 
-            <div style={{ width: '50%' }}>
-              <FileUploader />
-            </div>
-
-            <div
-              style={{
-                width: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              {vehicule ? <h1>{vehicule.licensePlate}</h1> : null}
-
-              <input
-                style={{ width: '200px', minHeight: '50px', maxHeight: '50px' }}
-                value={licensePlate}
-                onChange={(e) => setLicensePlate(e.target.value)}
-              />
-              <Button
-                variant="contained"
-                onClick={getByLicensePlate}
-                style={{
-                  width: '70px',
-                  minHeight: '50px',
-                  maxHeight: '50px',
-                  borderRadius: '0',
-                  boxShadow: 'none',
-                }}
-              >
-                Buscar
-              </Button>
-            </div>
-          </Container>
-          {/* End hero unit */}
-
-          <div
-            style={{
-              height: 500,
-              width: '100%',
-              padding: '30px',
-            }}
-          >
-            <DataGrid
-              rows={rows}
+          <Grid item xs={4}></Grid>
+          <Grid item xs={12}>
+            <MUIDataTable
+              title={"Listado de vehiculos"}
+              data={customRows}
               columns={columns}
-              pageSize={5}
-              rowsPerPageOptions={[5]}
-              checkboxSelection
+              pagination={true}
+              options={{
+                selectableRows: false,
+                tableBodyHeight: "400px",
+              }}
             />
-          </div>
-        </main>
-        {/* Footer */}
-        <Box
-          sx={{
-            bgcolor: 'background.paper',
-            p: 6,
-            position: 'fixed',
-            width: '100%',
-            bottom: '0',
-          }}
-          component="footer"
-        >
-          <Typography variant="h6" align="center" gutterBottom>
-            Footer
-          </Typography>
-          <Typography
-            variant="subtitle1"
-            align="center"
-            color="text.secondary"
-            component="p"
-          >
-            Something here to give the footer a purpose!
-          </Typography>
-          <Copyright />
-        </Box>
-        {/* End footer */}
-      </ThemeProvider>
+          </Grid>
+        </Grid>
+      </Container>
+      <Footer />
     </>
   );
 }
